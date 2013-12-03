@@ -1,24 +1,23 @@
-
 #include <os.h>
 #include <x86.h>
 
-/* pointeur de pile / tsack pointer */
+/* Stack pointer */
 extern u32 *		stack_ptr;
 
-static char cpu_name[512]="x86-noname";
+/* Current cpu name */
+static char cpu_name[512] = "x86-noname";
 
 
-
-/* detect the type of processor */
+/* Detect the type of processor */
 char* Architecture::detect(){
 	cpu_vendor_name(cpu_name);
 	return cpu_name;
 }
 
-/* start the processor interface */
+/* Start and initialize the architecture */
 void Architecture::init(){
-	 io.print("Architecture x86, cpu=%s \n",detect());
-			 
+	 io.print("Architecture x86, cpu=%s \n", detect());
+	
 	 io.print("Loading GDT \n");
 		 init_gdt();
 		 asm("	movw $0x18, %%ax \n \
@@ -33,11 +32,10 @@ void Architecture::init(){
 		 init_pic();
 	 
 	 io.print("Loading Task Register \n");
-		 asm("	movw $0x38, %ax; ltr %ax");
-		 
+		 asm("	movw $0x38, %ax; ltr %ax");	 
 }
 
-/* initialise the list of processus */
+/* Initialise the list of processus */
 void Architecture::initProc(){
 	firstProc= new Process("kernel");
 	firstProc->setState(ZOMBIE);
@@ -53,7 +51,7 @@ void Architecture::initProc(){
 	current->regs.cr3 = (u32) pd0;
 }
 
-/* reboot the computer */
+/* Reboot the computer */
 void Architecture::reboot(){
     u8 good = 0x02;
     while ((good & 0x02) != 0)
@@ -61,30 +59,30 @@ void Architecture::reboot(){
     io.outb(0x64, 0xFE);
 }
 
-/* shutdown the computer */
+/* Shutdown the computer */
 void Architecture::shutdown(){
-
+	// todo
 }
 
-/* install a interruption handler */
+/* Install a interruption handler */
 void Architecture::install_irq(int_handler h){
-
+	// todo
 }
 
-/* add a process to the scheduler */
+/* Add a process to the scheduler */
 void Architecture::addProcess(Process* p){
 	p->setPNext(plist);
 	plist=p;
 }
 
-/* fork a process */
+/* Fork a process */
 int Architecture::fork(process_st* info,process_st* father){
 	memcpy((char*)info,(char*)father,sizeof(process_st));
 	info->pd = pd_copy(father->pd);
 }
 
-/* initialise a process */
-int Architecture::createProc(process_st* info,char* file,int argc,char** argv){
+/* Initialise a new process */
+int Architecture::createProc(process_st* info, char* file, int argc, char** argv){
 	page *kstack;
 	process_st *previous;
 	process_st *current;
@@ -201,10 +199,6 @@ int Architecture::createProc(process_st* info,char* file,int argc,char** argv){
 	info->regs.esi = 0;
 	info->regs.edi = 0;
 
-	// info->pd; 
-	// info->pglist; 
-	//io.print("new proc : eip : %x \n",info->regs.eip);
-
 	info->b_heap = (char*) ((u32) info->e_bss & 0xFFFFF000) + PAGESIZE;
 	info->e_heap = info->b_heap;
 
@@ -220,7 +214,7 @@ int Architecture::createProc(process_st* info,char* file,int argc,char** argv){
 }
 
 
-/* destroy a processus */
+// Destroy a process
 void Architecture::destroy_process(Process* pp){
 	disable_interrupt();
 	
@@ -233,40 +227,34 @@ void Architecture::destroy_process(Process* pp){
 	process_st *pidproc=pp->getPInfo();
 	
 	
-	/*
-	 * Passe sur la table page du processus à detruire
-	 */
-	//io.print("cr3 to %x \n",pidproc->regs.cr3);
+	// Switch page to the process to destroy
 	asm("mov %0, %%eax ;mov %%eax, %%cr3"::"m" (pidproc->regs.cr3));
 
 	
-	/* 
-	 * Liberation des ressources memoire allouees au processus :
-	 *   - les pages utilisees par le code executable
-	 *   - la pile utilisateur
-	 *   - la pile noyau
-	 *   - le repertoire et les tables de pages
-	 */
+	// Free process memory:
+	//  - pages used by the executable code
+	//  - user stack
+	//  - kernel stack
+	//  - pages directory
 
-	// Libere la memoire occupee par le processus   (sauf thread !!!!)
-		list_for_each_safe(p, n, &pidproc->pglist) {
-			pg = list_entry(p, struct page, list);
-			release_page_frame(pg->p_addr);
-			list_del(p);
-			kfree(pg);
-		}
+	// Free process memory
+	list_for_each_safe(p, n, &pidproc->pglist) {
+		pg = list_entry(p, struct page, list);
+		release_page_frame(pg->p_addr);
+		list_del(p);
+		kfree(pg);
+	}
 	
 	release_page_from_heap((char *) ((u32)pidproc->kstack.esp0 & 0xFFFFF000));
 
-	// Libere le repertoire de pages et les tables associees 
+	// Free pages directory
 	asm("mov %0, %%eax; mov %%eax, %%cr3"::"m"(pd0));
 
 	pd_destroy(pidproc->pd);
 
 	asm("mov %0, %%eax ;mov %%eax, %%cr3"::"m" (proccurrent->regs.cr3));
 	
-	//on l'enleve de la liste
-	
+	// Remove from the list
 	if (plist==pp){
 		plist=pp->getPNext();
 	}
@@ -276,7 +264,6 @@ void Architecture::destroy_process(Process* pp){
 		while (l!=NULL){
 			
 			if (l==pp){
-				//io.print("%s next is now %s\n",ol->getName(),l->getName());
 				ol->setPNext(pp->getPNext());
 			}
 			
@@ -289,7 +276,7 @@ void Architecture::destroy_process(Process* pp){
 }
 
 
-void Architecture::change_process_father(Process* pe,Process* pere){
+void Architecture::change_process_father(Process* pe, Process* pere){
 	Process* p=plist;
 	Process* pn=NULL;
 	while (p!=NULL){
@@ -310,19 +297,15 @@ void Architecture::destroy_all_zombie(){
 		pn=p->getPNext();
 		if (p->getState()==ZOMBIE && p->getPid()!=1){
 			destroy_process(p);
-			//io.print("delete '%s' \n",p->getName());
 			delete p;
 		}
 		
 		p=pn;
 	}
-	//io.print("destroy all zombie end !\n");
 }
 
-//1076e8
-
-/* set the syscall arguments */
-void Architecture::setParam(u32 ret,u32 ret1,u32 ret2, u32 ret3,u32 ret4){
+/* Set the syscall arguments */
+void Architecture::setParam(u32 ret, u32 ret1, u32 ret2, u32 ret3,u32 ret4){
 	ret_reg[0]=ret;
 	ret_reg[1]=ret1;
 	ret_reg[2]=ret2;
@@ -330,17 +313,17 @@ void Architecture::setParam(u32 ret,u32 ret1,u32 ret2, u32 ret3,u32 ret4){
 	ret_reg[4]=ret4;
 }
 
-/* enable the interruption */
+/* Enable the interruption */
 void Architecture::enable_interrupt(){
 	asm ("sti");
 }
 
-/* disable the interruption */
+/* Disable the interruption */
 void Architecture::disable_interrupt(){
 	asm ("cli");
 }
 
-/* get a syscall argument */
+/* Get a syscall argument */
 u32	Architecture::getArg(u32 n){
 	if (n<5)
 		return ret_reg[n];
@@ -348,11 +331,7 @@ u32	Architecture::getArg(u32 n){
 		return 0;
 }
 
-/* set the return value of syscall */
+/* Set the return value of syscall */
 void Architecture::setRet(u32 ret){
 	stack_ptr[14] = ret;
 }
-
-
-
-

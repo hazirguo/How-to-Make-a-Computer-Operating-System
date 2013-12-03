@@ -6,11 +6,11 @@ When an x86-based computer is turned on, it begins a complex path to get to the 
 
 The BIOS boot sequence is: RAM detection -> Hardware detection/Initialization -> Boot sequence.
 
-The step important for us is the "Boot sequence", when the BIOS is done with its initialization and tries to transfer control to the next stage of the bootloader process.
+The important step for us is the "Boot sequence", where the BIOS is done with its initialization and tries to transfer control to the next stage of the bootloader process.
 
-During the "Boot sequence", the BIOS will first choose the "boot device" (floopy disk, hard-disk, CD, usb flash memory device or network). Our Operating system will first boot from the hard-disk (but it's possible to boot it from a CD or a usb flash memory device).
+During the "Boot sequence", the BIOS will first choose the "boot device" (floppy disk, hard-disk, CD, usb flash memory device or network). Our Operating system will first boot from the hard-disk (but it will be possible to boot it from a CD or a usb flash memory device).
 
-The BIOS will read the 512 bytes from the first valid bootsector (If the last two bytes are 0x55, and then 0xAA, then the BIOS considers this to be a valid bootsector), If the BIOS never finds a valid bootsector, it will lock up with an error message. And it'll transfer these 512 bytes into physical memory starting at address 0x7c00 then starts running the code that now begins at 0x7c00.
+The BIOS will read 512 bytes from the first valid bootsector (where the last two bytes are 0x55 0xAA), or lock up with an error message if it cannot find one. And it'll transfer these 512 bytes into physical memory starting at address 0x7c00 then starts running the code that now begins at 0x7c00.
 
 When the BIOS transfers control to the bootsector, the bootsector code is loaded and running at physical address 0x7c00 and the CPU is in 16-bit Real Mode but our kernel will be only 32bits so we need a bootloader to read our kernel switch to protected mode and starts running it.
 
@@ -29,7 +29,7 @@ To make it simple, GRUB is the first thing booted by the machine (a boot-loader)
 
 #### How to use GRUB?
 
-GRUB uses the Multiboot specification, the executable binary should be 32bits and must contains a special header (multiboot header) in its 8192 first bytes. Our kernel will be a ELF executable file ("Executable and Linkable Format", it is a common standard file format for executables in most UNIX system).
+GRUB uses the Multiboot specification, the executable binary should be 32bits and must contain a special header (multiboot header) in its 8192 first bytes. Our kernel will be a ELF executable file ("Executable and Linkable Format", a common standard file format for executables in most UNIX system).
 
 The first boot sequence of our kernel is written in Assembly: [start.asm](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/arch/x86/start.asm) and we use a linker file to define our executable structure: [linker.ld](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/arch/x86/linker.ld).
 
@@ -68,7 +68,7 @@ struct multiboot_info {
 };
 ```
 
-You can use the command ```mbchk kernel.elf``` to valid your kernel.elf file with the multiboot standard. You also use the command ```nm -n kernel.elf``` to validate the offset of the differents objects in the ELF binary.
+You can use the command ```mbchk kernel.elf``` to validate your kernel.elf file against the multiboot standard. You also use the command ```nm -n kernel.elf``` to validate the offset of the differents objects in the ELF binary.
 
 #### Create a disk image for our kernel and grub
 
@@ -128,7 +128,7 @@ fdisk ./c.img
 > w
 ```
 
-We need now to atach the created partition to loop-device (which allow a file to be access like a block device) using losetup. The offset of the partition is passed as an argument and calculed using: **offset= start_sector * bytes_by_sector**.
+We need now to attach the created partition to loop-device (which allow a file to be access like a block device) using losetup. The offset of the partition is passed as an argument and calculed using: **offset= start_sector * bytes_by_sector**.
 
 Using ```fdisk -l -u c.img```, you get: 63 * 512 = 32356.
 

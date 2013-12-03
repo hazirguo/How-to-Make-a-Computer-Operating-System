@@ -4,17 +4,15 @@
 
 A kernel can be programmed in C++, it is very similar to making a kernel in C, except that there are a few pitfalls you must take into account (runtime support, constructors, ...)
 
-The compiler will assume that all the C++ runtime support is available by default, however you are not linking in libsupc++ into your C++ kernel, which implements the necessary run-time support. So we need to add some basic run-time support.
+The compiler will assume that all the necessary C++ runtime support is available by default, but as we are not linking in libsupc++ into your C++ kernel, we need to add some basic functions that can be found in the [cxx.cc](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/runtime/cxx.cc) file.
 
-Our basic C++ runtime can be found in the [cxx.cc](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/runtime/cxx.cc) file.
-
-**Caution:** The operators *new* and *delete* cannot be used before virtual memory and pagination have been initialized.
+**Caution:** The operators `new` and `delete` cannot be used before virtual memory and pagination have been initialized.
 
 #### Basic C/C++ functions
 
-The kernel code can't use functions from the standards libraries so we need to add some basics functions for managing memory, string, ...
+The kernel code can't use functions from the standard libraries so we need to add some basic functions for managing memory and strings:
 
-```
+```cpp
 void 	itoa(char *buf, unsigned long int n, int base);
 
 void *	memset(char *dst,char src, int n);
@@ -30,9 +28,25 @@ int 	strncmp( const char* s1, const char* s2, int c );
 
 These functions are defined in [string.cc](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/runtime/string.cc), [memory.cc](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/runtime/memory.cc), [itoa.cc](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/runtime/itoa.cc)
 
+#### C types
+
+During the next step, we are going to use different types in our code, most of the types we are going to use unsigned types (all the bytes are used to stored the integer, in signed types one byte is used to signal the sign):
+
+```cpp
+typedef unsigned char 	u8;
+typedef unsigned short 	u16;
+typedef unsigned int 	u32;
+typedef unsigned long long 	u64;
+
+typedef signed char 	s8;
+typedef signed short 	s16;
+typedef signed int 		s32;
+typedef signed long long	s64;
+```
+
 #### Compile our kernel
 
-Compiling a kernel is not the same thing as compile a linux executable, we can't use standard library and need no dependencies to the system.
+Compiling a kernel is not the same thing as compiling a linux executable, we can't use a standard library and should have no dependencies to the system.
 
 Our [Makefile](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/blob/master/src/kernel/Makefile) will define the process to compile and link our kernel.
 
@@ -48,8 +62,6 @@ SC=g++
 FLAG= $(INCDIR) -g -O2 -w -trigraphs -fno-builtin  -fno-exceptions -fno-stack-protector -O0 -m32  -fno-rtti -nostdlib -nodefaultlibs 
 
 # Assembly compiler
-ASM=nasm  
+ASM=nasm
 ASMFLAG=-f elf -o
 ```
-
-

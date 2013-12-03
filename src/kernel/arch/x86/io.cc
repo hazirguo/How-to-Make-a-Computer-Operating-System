@@ -1,29 +1,17 @@
-
 #include <os.h>
-
-/**
- *	10/04/06 (Samy Pessé) : le puttty n'affiche plus sur l'ecran, ceci doit se faire en zone utilisateur
- *
- **/
-
-/*
-Cette class Io permet de gérer l'interface hardware et aussi de gerer une sortie
-texte standart
-*/
-
 
 Io* Io::last_io=&io;		/* definis la derniere io avant switch */
 Io* Io::current_io=&io;		/* interface actuel (clavier redirigé vers celle ci) */
 
-/* memoire video sur x86 */
-char* Io::vidmem=(char*)RAMSCREEN;
+/* Video memory */
+char* Io::vidmem = (char*)RAMSCREEN;
 
-/* constructeur */
+/* Constructor */
 Io::Io(){
-	real_screen=(char*)RAMSCREEN;
+	real_screen = (char*)RAMSCREEN;
 }
 
-/* destructeur */
+/* Destructor */
 Io::Io(u32 flag){
 	real_screen=(char*)screen;
 }
@@ -68,7 +56,6 @@ u32	Io::getX(){
 u32	Io::getY(){
 	return (u32)y;
 }
-
 
 /* x86 scroll up screen */
 void Io::scrollup(unsigned int n)
@@ -263,7 +250,6 @@ void Io::print(const char *s, ...){
 
 /* put a byte on the console */
 void Io::putctty(char c){
-	//putc(c);	//enlever de puis la 10.4.6
 	if (keystate==BUFFERED){
 		if (c == 8) {		/* backspace */
 			if (keypos>0) {
@@ -303,5 +289,3 @@ u32 Io::read(char* buf,u32 count){
 	strncpy(buf,inbuf,count);
 	return strlen(buf);
 }
-
-
